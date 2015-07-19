@@ -4,11 +4,12 @@ import random
 
 class Car:
 
-    def __init__(self, id):
-        self.id = id
+    def __init__(self, car_id, rd):
+        self.id = car_id
         self.speed = 0
         self.position = 0
         self.accel = 2
+        self.road = rd
 
     def move(self, car2):
         # distance_between = self.\
@@ -23,21 +24,22 @@ class Car:
                 self.stop()
 
         self.next_position()
-        # if self.position > (car2.position%200):
-        #     print('car 1 position{}     car 2 position{}'.format(self.position,
-        #                                                          car2.position))
-        #     print('BOOM')
+        if self.position > (car2.position%200):
+            print('car 1 position{}     car 2 position{}'.
+                                          format(self.position,
+                                                 car2.position))
+            print('BOOM')
 
     def get_distance_between(self, pos1, pos2):
         if pos1 > pos2:
-            dist = (pos2 + 999) - pos1
+            dist = ((pos2-2) + self.road.total_len-1) - pos1
         else:
-            dist = pos2 - pos1
+            dist = (pos2-2) - pos1
 
         return dist
 
     def next_position(self):
-        self.position = (self.position + self.speed) % 1000
+        self.position = (self.position + self.speed) % self.road.total_len
 
     def slow_down(self):
         if self.speed >= 2:
@@ -46,8 +48,10 @@ class Car:
             self.speed = 0
 
     def speed_up(self):
-        # 10 % of the time randomly slow down
-        if random.randint(1, 100) < 10:
+        # depending on the section of road we are on - we may slow
+        # instead of speeding up
+        if random.randint(1, 100) < \
+                self.road.get_chance_to_slow(self.position):
             self.slow_down()
         else:
             self.speed += 2
@@ -65,22 +69,37 @@ class Road:
 
     def __init__(self, r_len):
         self.total_len = r_len
+        self.chance_to_slow = 10
+
+    def get_chance_to_slow(self, position):
+        if position <= 999 or \
+           2000 <= position <= 2999 or \
+           4000 <= position <= 4999 or \
+           6000 <= position <= 6999:
+            self.chance_to_slow = 10
+        elif 1000 <= position <= 1999:
+            self.chance_to_slow = 40
+        elif 3000 <= position <= 3999:
+            self.chance_to_slow = 100
+        elif 5000 <= position <= 5999:
+            self.chance_to_slow = 20
+
+        return self.chance_to_slow
 
 
 class Simulation:
     # keeps track of the road in a 1000 length list/array
     # get the ave speed of cars after 60 secs
 
-    def __init__(self, num_cars, car_location_list, sim_time, road_len):
-        self.num_cars = num_cars
-        self.sim_time = sim_time
-        self.cars = [Car(x) for x in range(0, num_cars)]
+    def __init__(self, number_cars, car_loc_list, s_time, rd):
+        self.num_cars = number_cars
+        self.sim_time = s_time
+        self.cars = [Car(x, rd) for x in range(0, number_cars)]
         self.cars_per_s = []
-        road = Road(road_len)
 
         # set the starting position in each car object
         for i in range(len(self.cars)):
-            self.cars[i].position = car_location_list[i]
+            self.cars[i].position = car_loc_list[i]
 
     def step(self):
         # for each car on the road check to see if they can advance
@@ -99,7 +118,6 @@ class Simulation:
             self.cars[0].next_position()
 
     def run(self, time=0):
-
         # return - this will be the ave speed of cars for 60 s
         while time < self.sim_time:
             self.step()
@@ -107,7 +125,7 @@ class Simulation:
 
             speeds = []
             for each in self.cars:
-                #speeds.append((each.speed, each.position))
+                # speeds.append((each.speed, each.position))
                 speeds.append(each.speed)
 
             if time == 1:
@@ -115,28 +133,27 @@ class Simulation:
             else:
                 self.cars_per_s = np.append(self.cars_per_s, [speeds], axis=0)
 
-        print(self.cars_per_s)
-        # after 1 min record the speed of all the cars
+        # after 1 min return the speed of all the cars
         return speeds
 
     def get_np_array(self):
         return self.cars_per_s
 
-    def __str__(self):
-        #return 'the (speed, position): {}'.format(self.results)
-        return 'the speed {}'.format(self.results)
-
 
 if __name__ == '__main__':
 
     # first thing to do is make a road and a car or a list of cars
+    time_car_trials = []
     num_cars = 30
     sim_time = 60
-    road_length = 1000
-    car_position_arr = np.linspace(0, road_length-1, num=num_cars, dtype=int)
+    # road_length = 7000
+    # ch_to_slow = [(999, 10), (1999, 40), (2999, 10), (3999, 100),
+    #               (4999, 10), (5999, 20), (6999, 10)]
+    # car_position_arr = np.linspace(0, road_length-1, num=num_cars, dtype=int)
+    #
+    # road = Road(road_length)
+    # sim = Simulation(num_cars, car_position_arr, sim_time, road)
+    # time_car_trials = sim.run()
+    # print(time_car_trials)
 
-    sim = Simulation(num_cars, car_position_arr, sim_time, road_length)
-    time_car_trials = sim.run()
-    print(time_car_trials)
-
-    sim.get_np_array()
+    # sim.get_np_array()
