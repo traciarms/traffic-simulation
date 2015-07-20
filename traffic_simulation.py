@@ -4,23 +4,22 @@ import random
 
 class Car:
 
-    def __init__(self, car_id, rd):
+    def __init__(self, car_id, rd, veh_size=5, follow_dist=1, max_speed=33,
+                 accel=2.0):
         self.id = car_id
         self.speed = 0
         self.position = 0
-        self.accel = 2
         self.road = rd
+        self.veh_size = veh_size
+        self.follow_dist = follow_dist
+        self.max_speed = max_speed
+        self.accel = accel
 
     def move(self, car2):
         # distance_between = self.\
         meters = self.get_distance_between(self.position, car2.position)
-        min_spacing = random.randint(1, 100)
-        if min_spacing <= 15:
-            buffer = 2
-        else:
-            buffer = 1
 
-        if meters > (self.speed*buffer + self.accel):
+        if meters > (self.speed*self.follow_dist + self.accel):
             self.speed_up()
         else:
             if meters > car2.speed:
@@ -31,19 +30,11 @@ class Car:
         self.next_position()
 
     def get_distance_between(self, pos1, pos2):
-        vehicle_size = random.randint(1, 100)
-
-        # 15% of drivers are commerical vehicle drivers with a longer length
-        if vehicle_size <= 15:
-            vehicle_buffer = 12.5
-        else:
-            # otherwise all other cars are 5 meters
-            vehicle_buffer = 2.5
 
         if pos1 > pos2:
-            dist = ((pos2 - vehicle_buffer) + self.road.total_len-1) - pos1
+            dist = ((pos2 - self.veh_size/2) + self.road.total_len-1) - pos1
         else:
-            dist = (pos2 - vehicle_buffer) - pos1
+            dist = (pos2 - self.veh_size/2) - pos1
 
         return dist
 
@@ -63,19 +54,8 @@ class Car:
                 self.road.get_chance_to_slow(self.position):
             self.slow_down()
         else:
-            driver_type = random.randint(1, 100)
-            if driver_type <= 10:
-                # these are the aggressive drivers
-                if self.speed < 39:
-                    self.speed += 5
-            elif 50 <= driver_type <= 65:
-                # the commercial drivers
-                if self.speed < 28:
-                    self.speed += 1.5
-            else:
-                # the other 75% of drivers
-                if self.speed < 33:
-                    self.speed += 2
+            if self.speed < self.max_speed:
+                self.speed += self.accel
 
     def stop(self):
         self.speed = 0
@@ -112,10 +92,28 @@ class Simulation:
     # keeps track of the road in a 1000 length list/array
     # get the ave speed of cars after 60 secs
 
-    def __init__(self, number_cars, car_loc_list, s_time, rd):
+    def __init__(self, number_cars, car_loc_list, s_time, rd, d_types=False):
         self.num_cars = number_cars
         self.sim_time = s_time
-        self.cars = [Car(x, rd) for x in range(0, number_cars)]
+        self.cars = []
+
+        if not d_types:
+            self.cars = [Car(x, rd) for x in range(0, number_cars)]
+        else:
+            for x in range(0, number_cars):
+                driver_t = random.randint(1, 100)
+
+                # 10% of drivers are aggressive
+                if 1 <= driver_t <= 10:
+                    self.cars.append(Car(x, rd, max_speed=140, accel=5))
+                # check for 15% commercial vehicles
+                elif 20 <= driver_t <= 35:
+                    # this is the commercial vehicle
+                    self.cars.append(Car(x, rd, 25, 2, 100, 1.5))
+                # all other cars are normal drivers
+                else:
+                    self.cars.append(Car(x, rd))
+
         self.cars_per_s = []
 
         # set the starting position in each car object
@@ -145,14 +143,17 @@ class Simulation:
             time += 1
 
             speeds = []
+            locations = []
             for each in self.cars:
                 # speeds.append((each.speed, each.position))
                 speeds.append(each.speed)
+                locations.append(each.position)
 
             if time == 1:
-                self.cars_per_s = np.array([speeds])
+                self.cars_per_s = np.array([locations])
             else:
-                self.cars_per_s = np.append(self.cars_per_s, [speeds], axis=0)
+                self.cars_per_s = \
+                    np.append(self.cars_per_s, [locations], axis=0)
 
         # after 1 min return the speed of all the cars
         return speeds
@@ -167,13 +168,12 @@ if __name__ == '__main__':
     time_car_trials = []
     num_cars = 30
     sim_time = 60
-    road_length = 7000
-    ch_to_slow = [(999, 10), (1999, 40), (2999, 10), (3999, 100),
-                  (4999, 10), (5999, 20), (6999, 10)]
+    road_length = 1000
+    driver_types = True
     car_position_arr = np.linspace(0, road_length-1, num=num_cars, dtype=int)
 
     road = Road(road_length)
-    sim = Simulation(num_cars, car_position_arr, sim_time, road)
+    sim = Simulation(num_cars, car_position_arr, sim_time, road, driver_types)
     time_car_trials = sim.run()
     print(time_car_trials)
 
