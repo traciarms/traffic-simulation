@@ -14,8 +14,13 @@ class Car:
     def move(self, car2):
         # distance_between = self.\
         meters = self.get_distance_between(self.position, car2.position)
+        min_spacing = random.randint(1, 100)
+        if min_spacing <= 15:
+            buffer = 2
+        else:
+            buffer = 1
 
-        if meters > (self.speed + self.accel):
+        if meters > (self.speed*buffer + self.accel):
             self.speed_up()
         else:
             if meters > car2.speed:
@@ -24,17 +29,21 @@ class Car:
                 self.stop()
 
         self.next_position()
-        if self.position > (car2.position%200):
-            print('car 1 position{}     car 2 position{}'.
-                                          format(self.position,
-                                                 car2.position))
-            print('BOOM')
 
     def get_distance_between(self, pos1, pos2):
-        if pos1 > pos2:
-            dist = ((pos2-2) + self.road.total_len-1) - pos1
+        vehicle_size = random.randint(1, 100)
+
+        # 15% of drivers are commerical vehicle drivers with a longer length
+        if vehicle_size <= 15:
+            vehicle_buffer = 12.5
         else:
-            dist = (pos2-2) - pos1
+            # otherwise all other cars are 5 meters
+            vehicle_buffer = 2.5
+
+        if pos1 > pos2:
+            dist = ((pos2 - vehicle_buffer) + self.road.total_len-1) - pos1
+        else:
+            dist = (pos2 - vehicle_buffer) - pos1
 
         return dist
 
@@ -50,11 +59,23 @@ class Car:
     def speed_up(self):
         # depending on the section of road we are on - we may slow
         # instead of speeding up
-        if random.randint(1, 100) < \
+        if random.randint(1, 100) <= \
                 self.road.get_chance_to_slow(self.position):
             self.slow_down()
         else:
-            self.speed += 2
+            driver_type = random.randint(1, 100)
+            if driver_type <= 10:
+                # these are the aggressive drivers
+                if self.speed < 39:
+                    self.speed += 5
+            elif 50 <= driver_type <= 65:
+                # the commercial drivers
+                if self.speed < 28:
+                    self.speed += 1.5
+            else:
+                # the other 75% of drivers
+                if self.speed < 33:
+                    self.speed += 2
 
     def stop(self):
         self.speed = 0
@@ -146,14 +167,14 @@ if __name__ == '__main__':
     time_car_trials = []
     num_cars = 30
     sim_time = 60
-    # road_length = 7000
-    # ch_to_slow = [(999, 10), (1999, 40), (2999, 10), (3999, 100),
-    #               (4999, 10), (5999, 20), (6999, 10)]
-    # car_position_arr = np.linspace(0, road_length-1, num=num_cars, dtype=int)
-    #
-    # road = Road(road_length)
-    # sim = Simulation(num_cars, car_position_arr, sim_time, road)
-    # time_car_trials = sim.run()
-    # print(time_car_trials)
+    road_length = 7000
+    ch_to_slow = [(999, 10), (1999, 40), (2999, 10), (3999, 100),
+                  (4999, 10), (5999, 20), (6999, 10)]
+    car_position_arr = np.linspace(0, road_length-1, num=num_cars, dtype=int)
+
+    road = Road(road_length)
+    sim = Simulation(num_cars, car_position_arr, sim_time, road)
+    time_car_trials = sim.run()
+    print(time_car_trials)
 
     # sim.get_np_array()
